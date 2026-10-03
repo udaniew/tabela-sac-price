@@ -1,0 +1,578 @@
+================================================================================
+ALTERACOES REALIZADAS NO PROJETO - TABELA SAC / PRICE
+================================================================================
+Projeto : cursoReact (tabela-sac-price)
+Data    : 03/10/2026
+Commit  : c8e7252  "Corrige calculo SAC/Price e responsividade mobile"
+Repo    : https://github.com/udaniew/tabela-sac-price
+
+Arquivos alterados:
+  package.json        (prop-types adicionado como dependencia)
+  package-lock.json   (gerado pelo npm install)
+  src/App.jsx         (calculo SAC/Price + propTypes)
+  src/App.css         (reescrito contra as classes reais do JSX)
+  src/index.css       (removidos estilos do template Vite)
+
+
+================================================================================
+1. CORRECAO DO CALCULO (SAC E PRICE)
+================================================================================
+
+--------------------------------------------------------------------------------
+1.1 DIAGNOSTICO - AS FORMULAS JA ERAM CORRETAS
+--------------------------------------------------------------------------------
+Antes de mexer, extrai as duas funcoes do App.jsx e comparei com uma
+implementacao independente em forma fechada (closed form). Resultado:
+
+  SAC   PV=100000 i=1%   n=120: max diff vs referencia = 0.00e+0
+  PRICE PV=100000 i=1%   n=120: max diff vs referencia = 2.09e-11
+  SAC   PV=50000  i=0.8% n=360: max diff vs referencia = 0.00e+0
+  PRICE PV=50000  i=0.8% n=360: max diff vs referencia = 0.00e+0
+  SAC   PV=12000.5 i=1.99% n=24: max diff vs referencia = 0.00e+0
+  PRICE PV=12000.5 i=1.99% n=24: max diff vs referencia = 0.00e+0
+  SAC   PV=100000 i=0%   n=100: max diff vs referencia = 0.00e+0
+  PRICE PV=100000 i=0%   n=100: max diff vs referencia = 0.00e+0
+
+Conclusao: as formulas matematicas (PMT e amortizacao) estavam CORRETAS.
+O defeito estava em outro lugar.
+
+--------------------------------------------------------------------------------
+1.2 CAUSA RAIZ - A TABELA NUNCA ERA ARREDONDADA PARA CENTAVOS
+--------------------------------------------------------------------------------
+O calculo rodava em float64 puro, enquanto a interface exibe todos os valores
+arredondados para centavos. Resultado: o "Total pago" nao batia com a soma da
+coluna "Prestacao" que o usuario somava na tela.
+
+  Cenario                        Total exibido    Soma da coluna    Divergencia
+  PRICE 100k / 1%   / 120m       R$ 172.165,14    R$ 172.165,20     R$ 0,06
+  PRICE 50k  / 0,8% / 360m       R$ 152.668,79    R$ 152.668,80     R$ 0,01
+  PRICE 12000,50/1,99%/ 24m       R$ 15.210,27     R$ 15.210,24    -R$ 0,03
+  SAC   (todos os cenarios)       -                -                 R$ 0,00
+
+Ao simular o funcionamento real de um contrato (centavo a centavo, como fazem
+bancos e financiadoras), o total correto seria R$ 172.165,08, mas o site
+mostrava R$ 172.165,14.
+
+--------------------------------------------------------------------------------
+1.3 CAUSA SECUNDARIA - toNumber QUEBRAVA EM FORMATO pt-BR
+--------------------------------------------------------------------------------
+A funcao substituia apenas a PRIMEIRA virgula e quebrava com separador de milhar:
+
+  toNumber('1.234,56')  ->  0      (virava "1.234.56" -> NaN -> 0)
+  toNumber('12.345,67') ->  0      (erro silencioso, zerava a simulacao)
+  toNumber('1,5')       ->  1.5    (ok)
+
+Ou seja, digitar um valor no formato brasileiro zerava a tabela sem aviso.
+
+================================================================================
+2. O QUE FOI CORRIGIDO
+================================================================================
+
+--------------------------------------------------------------------------------
+2.1 BOOKKEEPING EM CENTAVOS INTEIROS  (correcao principal)
+--------------------------------------------------------------------------------
+Toda a amortizacao passou a ser controlada em centavos inteiros, que e como um
+contrato real funciona. O saldo devedor nao "deriva" (nao acumula erro de ponto
+flutuante), porque subtrair centavos inteiros de centavos inteiros e exato.
+
+  Novo:
+    function toCents(value)  -> arredonda reais para centavos inteiros
+    function fromCents(cents) -> centavos inteiros para reais
+
+  toCents aplica uma "guarda" relativa (Number.EPSILON * 4) para corrigir o erro
+  de representacao binaria. Sem isso, valores como 1.005 cairiam para 1.00 em vez
+  de 1.01. Exemplo real de arredondamento bancario.
+
+--------------------------------------------------------------------------------
+2.2 LIMITAR A AMORTIZACAO AO SALDO DEVEDOR
+--------------------------------------------------------------------------------
+A amortizacao nunca pode ultrapassar o saldo devedor:
+
+  Price:  amortization = Math.min(opening, constantPayment - interest)
+  SAC:    amortization = Math.min(opening, constantAmortization)
+
+ATENCAO - um equivoco meu no meio do caminho:
+  Na primeira versao da correcao eu REMVI esse Math.min, achando que era
+  desnecessario. O teste exaustivo pegou a regressao de imediato, com
+  resultados quebrados:
+    "soma amort 100807.96 != PV 100000"
+    "SD != SD_ant - Am em 479"
+    "valor negativo ou parcela <= 0"
+  Causa: o residuo acumulado de arredondamento fazia o saldo da cauda ficar
+  menor que uma parcela, e a amortizacao passava a ser MAIOR que o saldo.
+  O Math.min original era obrigatorio e foi restaurado.
+
+--------------------------------------------------------------------------------
+2.3 ENCERRAMENTO ANTECIPADO DA TABELA
+--------------------------------------------------------------------------------
+  for (let index = 1; index <= months && balance > 0; index += 1)
+
+Quando o saldo zera antes do prazo (por efeito do arredondamento), a tabela
+encerra ali em vez de gerar linhas com R$ 0,00.
+
+--------------------------------------------------------------------------------
+2.4 PARCELA DE QUITACAO
+--------------------------------------------------------------------------------
+A ultima parcela sempre absorve o saldo restante e zera a devedora:
+
+  amortization = isLast ? opening : Math.min(...)
+
+E o contador de parcelas na tela passou a usar schedule.length (a quantidade
+real) em vez do prazo digitado.
+
+--------------------------------------------------------------------------------
+2.5 REJEICAO DE COMBINACOES INVIAVEIS
+--------------------------------------------------------------------------------
+Em combinacoes extremas (taxa de 5% a 12% ao mes com prazo longo), a
+amortizacao mensal fica ABAIXO DE UM CENTAVO e a tabela nao existe
+matematicamente. Nesses casos o site agora mostra uma mensagem clara em vez de
+gerar uma tabela quebrada:
+
+  "Essa combinacao de taxa e prazo nao e viavel: a amortizacao mensal fica
+   abaixo de um centavo. Reduza a taxa ou o prazo."
+
+Valores realistas (0,5% a 2,5% ao mes) nao sao afetados.
+
+--------------------------------------------------------------------------------
+2.6 toNumber ACEITA FORMATO pt-BR
+--------------------------------------------------------------------------------
+  toNumber('1.234,56')    -> 1234.56      (antes: 0)
+  toNumber('1.234.567,89')-> 1234567.89   (antes: 0)
+  toNumber('1234.56')      -> 1234.56      (formato internacional, ok)
+  toNumber('abc')          -> 0
+
+--------------------------------------------------------------------------------
+2.7 TETO DE PRAZO E CARTA "TOTAL AMORTIZADO"
+--------------------------------------------------------------------------------
+MAX_MONTHS = 600. Sem esse limite, digitar um prazo enorme travava o navegador
+renderizando centenas de milhares de linhas. Quando o prazo e cortado, o usuario
+e avisado. Tambem foi adicionado o card "Total amortizado", que permite conferir
+visualmente que a soma das amortizacoes bate com o valor financiado.
+
+================================================================================
+3. OS 17 ERROS VERMELHOS (react/prop-types)
+================================================================================
+
+npm run lint saiu com 17 erros. Causa: 3 componentes sem propTypes.
+
+  SummaryCard  -> title, value, featured
+  RowValues    -> row (+ 6 subcampos)
+  MobileRow    -> row (+ 6 subcampos)
+
+O que foi feito:
+  - prop-types@15.8.1 ADICIONADO como dependencia explicita em package.json.
+    Ele ja existia no node_modules, mas apenas como dependencia transitiva do
+    eslint-plugin-react. Importar sem declarar e frágil.
+  - Criado scheduleRowShape uma unica vez e reutilizado em RowValues e MobileRow,
+    que recebem a mesma forma de linha. Evita duplicar 6 campos duas vezes.
+  - Em SummaryCard usei parametro default (featured = false) em vez de
+    defaultProps, que esta deprecado no React 18.
+
+Resultado: npm run lint => ZERO erros.
+
+================================================================================
+4. RESPONSIVIDADE MOBILE
+================================================================================
+
+--------------------------------------------------------------------------------
+4.1 O PROBLEMA REAL
+--------------------------------------------------------------------------------
+O problema nao era falta de media query. O App.css estava inteiro DESALINHADO do
+App.jsx: as classes que o CSS estilizava NAO EXISTIAM no markup, e as classes
+que o JSX usava NAO TINHAM REGRA NENHUMA.
+
+  CSS pedia                  JSX usava
+  ------------------------   ------------------------
+  .page-header               .header
+  .header-mark               .logo-mark
+  .form-panel                .form-area
+  .field-group               .field
+  .input-with-prefix         .input-box
+  .input-with-suffix         .input-box
+  .system-tabs               .tabs
+  .tab-button                .tab
+  .summary-grid              .summary
+  .summary-card--primary     .summary-card.featured
+  .table-section             .table-area
+  .table-heading             .table-header
+  .table-wrapper             .desktop-table-wrapper
+  .empty-state               .message
+  .page-footer               .footer
+  (inexistente)              .mobile-list
+  (inexistente)              .mobile-row
+  (inexistente)              .mobile-row-title
+  (inexistente)              .mobile-values
+  (inexistente)              .center
+  (inexistente)              .strong-value
+
+Consequencia grave: .table-wrapper era a regra que dava overflow-x:auto para
+tabela. Como a tabela usa .desktop-table-wrapper, a rolagem horizontal nao
+existia. E os cards do mobile, que o JSX ja desenhava prontos, nao tinham
+NENHUMA estilo. Por isso as colunas quebravam no celular.
+
+--------------------------------------------------------------------------------
+4.2 AGRAVANTE - ORDEM DE IMPORTACAO DO CSS
+--------------------------------------------------------------------------------
+index.css era importado em main.jsx DEPOIS de App.jsx:
+
+  main.jsx: import App from './App.jsx'    <- App.css entra aqui
+  main.jsx: import './index.css'           <- entra DEPOIS
+
+Entao o index.css do template Vite VENCIA empates de especificidade:
+  body { display: flex; place-items: center; }   -> quebrava o layout
+  h1 { font-size: 3.2em; }                       ->ignorava o clamp()
+  :root { color-scheme: light dark; }            -> controles em tema escuro
+
+O que foi feito: index.css foi reduzido a um reset que NAO declara regras de
+elemento (body, h1, button). Todo o design passou a viver em App.css. Isso
+remove a ambiguidade de forma permanente.
+
+--------------------------------------------------------------------------------
+4.3 O QUE GARANTE O MOBILE
+--------------------------------------------------------------------------------
+  - TABELA VIRA CARDS abaixo de 820px. O JSX ja tinha o .mobile-list pronto;
+    so nao existia CSS. Agora: display:none no desktop, display:flex no mobile.
+
+  - ZERO OVERFLOW HORIZONTAL:
+      body { overflow-x: hidden }
+      todos os grids usam minmax(0, 1fr)
+      .field e .mobile-values > div com min-width: 0
+      valores em reais com overflow-wrap: anywhere
+      a TABELA e o unico elemento autorizado a rolar na horizontal
+      .desktop-table-wrapper { overflow-x: auto; overscroll-behavior-x: contain }
+
+  - INPUTS A 16PX: abaixo de 16px o iOS da zoom automatico ao focar o campo.
+
+  - SAFE AREA: padding com env(safe-area-inset-*) para telas com notch.
+
+  - ALVOS DE TOQUE de 44px minimo nos botoes.
+
+  - 100dvh em vez de 100vh (resolve a barra de endereco movel do iOS).
+
+  - BREAKPOINTS: 1100px (tablet), 820px (tabela vira cards), 560px (mobile),
+    360px (telas muito estreitas).
+
+  - @media (hover: none): remove efeitos de hover em dispositivos sem cursor.
+
+  - prefers-reduced-motion: respeita quem pediu menos movimento.
+
+  - -webkit-text-size-adjust: 100% no index.css: impede o zoom de texto
+    automatico do iOS ao rotacionar a tela.
+
+  - Ocultados os botoes do input type=number (spinners) que ocupavam espaco.
+
+  - Tokens de cor e fontes centralizados em variaveis CSS (:root).
+
+================================================================================
+5. VERIFICACOES EXECUTADAS
+================================================================================
+
+5.1 CALCULO - 1540 CENARIOS x 9 INVARIANTES OFICIAIS
+    As funcoes foram EXTRAIDAS do src/App.jsx real (nao de uma copia), para que
+    o teste nunca possa divergir do codigo em producao.
+
+    Cenarios com FALHA: 0 / 1540   (320 rejeitados como inviaveis pela UI)
+    >>> TODOS OS INVARIANTES OFICIAIS PASSARAM <<<
+
+    Matriz: PV {100000, 50000, 12000.50, 333.33, 1, 0.01, 99999.99}
+            x taxa {0, 0.01, 0.1, 0.5, 0.8, 1, 1.99, 2.5, 5, 12}
+            x prazo {1, 2, 7, 12, 24, 60, 120, 240, 360, 480, 600}
+            x {SAC, PRICE}
+
+    Os 9 invariantes conferidos:
+      1. saldo devedor final exatamente 0
+      2. continuidade: saldo final(k) = saldo inicial(k+1)
+      3. prestacao = juros + amortizacao  (identidade contabil)
+      4. saldo = saldo_anterior - amortizacao
+      5. soma das amortizacoes = valor financiado
+      6. total pago = valor financiado + total de juros
+      7. nenhuma parcela, juros ou amortizacao <= 0
+      8. numeracao de parcelas sequencial
+      9. saldo devedor estritamente decrescente
+         + constante por sistema (SAC amortizacao, Price parcela)
+
+5.2 CONFERENCIA MANUAL INDEPENDENTE
+    PRICE PV=100000 i=1% n=120
+      PMT teorica (closed form) : R$ 1.434,71
+      PMT contratada (tabela)  : R$ 1.434,71
+      parc 1: juros 1.000,00 + amort 434,71 = R$ 1.434,71
+      parc 2: juros   995,65 + amort 439,06 = R$ 1.434,71
+      parc120: juros    14,20 + amort 1.420,37 = R$ 1.434,57  (quitacao)
+      saldo devedor final      : R$ 0,00
+      soma das 120 parcelas    : R$ 172.165,06
+      soma dos juros           : R$ 72.165,06
+      PV + juros               : R$ 172.165,06  (bate)
+
+    SAC PV=100000 i=1% n=120
+      Amortizacao PV/n         : R$ 833,3333 -> R$ 833,33
+      parc 1: juros 1.000,00 + amort 833,33 = R$ 1.833,33
+      parc 2: juros   991,67 + amort 833,33 = R$ 1.825,00
+      parc120: juros     8,34 + amort 833,73 = R$   842,07  (ajuste)
+      soma amortizacoes        : R$ 100.000,00 (bate com o PV)
+      soma juros               : R$ 60.500,24
+      saldo final              : R$ 0,00
+
+5.3 LINT E BUILD
+      npm run lint   -> sem erros (antes: 17 erros)
+      npm run build  -> ok, 38 modulos
+
+5.4 CONFERENCIA JSX <-> CSS
+      classes usadas no JSX : 24
+      classes definidas     : 30
+      SEM REGRA NO CSS      : (nenhuma)
+      Os 6 "sem uso" sao falso-positivo do meu regex (.active, .featured,
+      .summary-card, .tab vem de template literals/ternarios; .com e .googleapis
+      vem da URL do Google Fonts).
+      O bundle subiu de 6,58 kB para 9,16 kB, o que confirma que as regras
+      passaram a ser realmente aplicadas.
+
+5.5 SMOKE TEST DE RENDER REAL (SSR, 20 assercoes, todas OK)
+      render sem exception
+      .app-shell, .calculator, .header, .logo-mark
+      .form-area com 3 .input-box
+      .tab.active presente
+      .summary com 5 cards (2 featured)
+      6 colunas no thead; 120 linhas x 6 celulas = 720 <td>
+      .mobile-list presente; 120 cards mobile renderizados
+      .center e .strong-value presentes
+      sem "undefined" nem "NaN" no HTML
+      primeira parcela em reais: R$ 1.833,33
+      total pago = soma da coluna: R$ 160.500,24
+      soma das amortizacoes = PV: R$ 100.000,00
+      3 labels com htmlFor (acessibilidade)
+
+================================================================================
+6. RESSALVAS E LIMITACOES CONHECIDAS
+================================================================================
+
+6.1 AJUSTE NA PARCELA FINAL DE PRAZOS LONGOS (comportamento esperado)
+    Em Price com prazo longo a ultima parcela se ajusta em relacao a constante.
+    Exemplo real: PV=100000, i=1%, n=360 -> R$ 1.028,61 ate a 359,
+    R$ 1.036,78 na ultima (diferenca de R$ 8,17 em R$ 370.307,77 = 0,002%).
+
+    POR QUE ISSO ACONTECE (e nao e um defeito):
+    A parcela e arredondada para centavo. Esse erro de arredondamento e
+    AMPLIFICADO a cada parcela pelo fator (1+i)^n, porque em Price a recursao do
+    saldo e b(k+1) = b(k) * (1+i) - PMT, um sistema instavel.
+      n=120 -> (1.01)^120 =   3,3x  -> ajuste de ~R$ 0,14
+      n=360 -> (1.01)^360 =  35,9x  -> ajuste de ~R$ 8,17
+      n=600 -> (1.01)^600 = 393,0x  -> ajuste maior
+
+    Isso e exatamente a "parcela de quitacao" ajustada que bancos e
+    financiadoras usam. Para nao ter esse ajuste seria preciso exibir centavos
+    fracionarios, o que quebraria a reconciliacao da coluna - o oposto do que
+    voce pediu. Foi mantida a consistencia contavel.
+
+6.2 COMBINACOES REJEITADAS
+    Taxas de 5% a 12% ao mes com prazo de 240 a 600 meses sao rejeitadas com
+    mensagem explicativa. Nao e limitacao artificial: a amortizacao mensal ficaria
+    abaixo de 1 centavo, ou seja, o emprestimo praticamente nao se pagaria.
+    Nenhum produto de financiamento brasileiro se aproxima disso (12% ao mes =
+    ~310% ao ano).
+
+6.3 VALIDACAO VISUAL PENDENTE
+    A validacao foi feita por verificacao estrutural (JSX <-> CSS) e por render
+    real em SSR, nao por inspecao visual num aparelho real. Recomendo conferir em
+    aproximadamente 360px, 560px, 820px e 1440px de largura.
+
+6.4 O COMMIT INCLUI MUDANCAS ANTERIORES
+    Alem das minhas correcoes, o working copy ja tinha alteracoes nao commitadas
+    antes do trabalho comecar (aspas duplas -> simples em App.jsx,
+    initialData -> initialForm). Tudo foi commitado junto por ser um unico
+    pedido de commit. Se quiser historico granular, da para separar com
+    "git rebase -i".
+
+================================================================================
+7. REFERENCIA RAPIDA - FORMULAS USADAS
+================================================================================
+
+TABELA SAC (Sistema de Amortizacao Constante)
+  Amortizacao_k = PV / n                      (constante em todas as parcelas)
+  Juros_k        = i * SD_(k-1)               (sobre o saldo ANTERIOR)
+  Prestacao_k    = Amortizacao_k + Juros_k
+  ultima parcela: amortiza o saldo restante
+
+TABELA PRICE (Parcela Constante)
+  PMT = PV * i * (1+i)^n / ((1+i)^n - 1)      (constante em todas as parcelas)
+  Juros_k        = i * SD_(k-1)
+  Amortizacao_k  = PMT - Juros_k
+  ultima parcela: amortiza o saldo restante
+
+Onde:
+  PV    = valor financiado
+  i     = taxa mensal em decimal (1% -> 0,01)
+  n     = prazo em meses
+  SD_k  = saldo devedor depois da parcela k
+
+REGRA DE OURO: o juros incide sempre sobre o saldo devedor ANTERIOR, nunca
+sobre o saldo atual, e a identidade  parcela = juros + amortizacao  tem de valer
+em todas as linhas.
+
+================================================================================
+RODADA 2 - TEMA ESCURO, TABELA COMPLETA NO MOBILE E CREDITOS
+================================================================================
+Data   : 03/10/2026
+Commit : (preenchido no push)
+Pedidos:
+  1. Tabelas completas no mobile, sem quebrar a pagina
+  2. Tema escuro (mobile e desktop)
+  3. Creditos "by Daniel lira" no final da pagina
+  4. Commit e push
+
+--------------------------------------------------------------------------------
+2.1 TABELA COMPLETA NO MOBILE
+--------------------------------------------------------------------------------
+DECISAO: a lista de cards (.mobile-list / .mobile-row) foi REMOVIDA e a tabela
+passou a ser a unica renderizacao em todas as telas.
+
+Motivos:
+  - Voce pediu a tabela completa, nao os cards.
+  - Elimina DOM DUPLICADO. Antes o codigo renderizava as duas coisas ao mesmo
+    tempo: 720 <td> da tabela + 120 articles de card, mesmo com uma delas
+    invisivel por CSS. Agora e metade do trabalho de layout.
+  - Os cards NAO mostravam a coluna "Parcela" como coluna, e a hierarquia era
+    diferente da tabela.
+
+Como a tabela completa cabe sem quebrar a pagina:
+  - .table-scroll { overflow-x: auto; overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch }
+    A tabela e o UNICO elemento autorizado a rolar na horizontal. O corpo da
+    pagina tem overflow-x: hidden, entao a rolagem nao "vaza".
+  - table { min-width: 720px }  -> abaixo de 720px de largura a tabela desliza
+  - COLUNA "PARCELA" FIXA (position: sticky; left: 0). Enquanto voce desliza
+    horizontalmente, o numero da parcela continua visivel, sem se perder.
+  - CABECALHO FIXO (position: sticky; top: 0) para a tabela com 600 linhas.
+  - Abaixo de 560px a tabela fica mais compacta (padding 11px/10px, fonte 11px,
+    cabecalho 9px) para caber mais colunas antes de precisar deslizar.
+  - Scrollbar estilizada e visivel (verde), para o usuario perceber que da pra
+    deslizar.
+  - .scroll-hint: aviso "Deslize a tabela para o lado para ver todas as
+    colunas." Aparece SO abaixo de 820px (quando a tabela comeca a deslizar),
+    some no desktop. Usa aria-hidden por ser decorativo.
+
+Classes renomeadas:
+  .desktop-table-wrapper  ->  .table-scroll   (o nome antigo mentia: a tabela
+                                                  nao e mais "desktop only")
+
+--------------------------------------------------------------------------------
+2.2 TEMA ESCURO (padrao, sem toggle)
+--------------------------------------------------------------------------------
+Tema escuro como PADRAO, em mobile e desktop. Nao foi feito alternador porque
+voce pediu "quero tema escuro no site" e nao pediu opcao de troca.
+
+  color-scheme: dark  -> alinha scrollbar, setas do input number e os demais
+                         controles nativos do navegador. Tambem evita o flash
+                         branco no carregamento.
+
+  Superficies, do mais profundo ao mais elevado:
+    --bg        #0d1311   fundo da pagina
+    --surface   #131b18   cartao principal
+    --surface-2 #1a2320   header, abas, linhas da tabela
+    --surface-3 #212c28   cards de resumo, botao limpar, cabecalho da tabela
+
+  Texto:
+    --text       #e9f1ec  principal
+    --text-muted #a3b3a9  secundario
+    --text-dim   #7d8f84  rotulos e legendas
+
+  Acento:
+    --accent       #4fae7c  botao ativo, logo, parcela destacada
+    --accent-strong #6cc796  textos de destaque
+    --on-accent    #08120d  texto sobre o acento
+
+--------------------------------------------------------------------------------
+2.3 CONTRASTE WCAG - MEDIDO, NAO ESTIMADO
+--------------------------------------------------------------------------------
+Eu escrevi primeiro uns valores de contraste "de memoria" no comentario do CSS
+e entao medi de verdade com a formula oficial do WCAG 2.1. Os numeros que eu
+tinha inventado estavam ERRADOS, e a medicao revelou um problema real:
+
+TODAS as bordas estavam abaixo de 3:1 (WCAG 1.4.11), por exemplo a borda do
+campo de input dava apenas 1,43:1 contra o fundo. Em tema escuro isso e um
+erro classico e deixa o contorno dos campos quase invisivel.
+
+Rodei uma busca automatica pelo verde-acinzentado mais ESCURO que ainda passa
+3:1 contra o fundo mais claro onde cada borda aparece (#212c28):
+
+  --line      #28815f   3,02:1 (pior caso, sobre surface-3)  APROVADO
+  --line-soft #286948   2,20:1   separadores de secao
+  --line-row  #28502e   1,74:1   divisoria de linha (decorativa)
+
+Contraste final medido:
+  --text       sobre surface-2  13,99:1  AAA
+  --text       sobre bg         16,33:1  AAA
+  --text-muted sobre surface-2   7,34:1  AAA
+  --text-muted sobre surface-3   6,58:1  AA
+  --text-dim   sobre surface-2   4,70:1  AA
+  --accent-str sobre surface-2   7,85:1  AAA
+  --on-accent  sobre accent      6,96:1  AA   (botao ativo)
+  --accent     sobre bg          6,87:1  AA   (logo)
+  --line       sobre surface-3   3,02:1  OK   (nao-texto)
+
+--line-row fica abaixo de 3:1 de proposito: e divisoria decorativa entre linhas
+da tabela, nao fronteira necessaria para identificar um componente, entao a
+WCAG 1.4.11 nao se aplica.
+
+--------------------------------------------------------------------------------
+2.4 CREDITOS
+--------------------------------------------------------------------------------
+No rodape, junto das notas existentes:
+
+  <span className="credits">by Daniel lira</span>
+
+Estilizado como pill (borda arredondada, fundo escuro, texto no acento) e
+centralizado com largura total no mobile. O texto e exatamente "by Daniel lira".
+
+--------------------------------------------------------------------------------
+2.5 VERIFICACOES DESTA RODADA
+--------------------------------------------------------------------------------
+  npm run lint    -> sem erros
+  npm run build   -> ok, 38 modulos, CSS 9,37 kB
+
+  SMOKE TEST DE RENDER (SSR, 20 assercoes, TODAS OK):
+    render sem exception
+    tabela presente (.table-scroll)
+    tabela com 6 colunas
+    120 linhas x 6 celulas = 720 <td>
+    121 <tr> (1 cabecalho + 120 linhas)
+    lista de cards REMOVIDA (confirmado no HTML)
+    dica de rolagem presente
+    creditos "by Daniel lira" presentes e dentro do <footer>
+    resumo com 5 cards, sendo 2 featured
+    3 inputs, .tab.active, .center e .strong-value
+    sem "undefined" nem "NaN"
+    primeira parcela R$ 1.833,33
+    total pago = soma da coluna = R$ 160.500,24
+    soma das amortizacoes = PV = R$ 100.000,00
+    3 labels com htmlFor
+
+  JSX <-> CSS: 22 classes usadas, NENHUMA sem regra.
+
+  REGRESSAO DO CALCULO: 1540 cenarios, 0 falhas. A matematica nao foi afetada
+  por nenhuma das mudancas visuais desta rodada.
+
+  NOTA: dois "erros" durante a validacao eram erro do MEU teste, nao do site:
+    - eu escrevi o assert de craseis como "byDanellira" (faltava o "i" de
+      Daniel). O site escreve "byDaniellira", que esta correto.
+    - eu afirmei valores de contraste sem medir. Medi depois e corrigi.
+
+================================================================================
+FICHA TECNICA RAPIDA - TEMA ESCURO
+================================================================================
+  body ................ #0d1311   (fundo)
+  .calculator ......... #131b18   (cartao)
+  .header / .tabs ..... #1a2320
+  tabela (linhas) .... #1a2320
+  tabela (thead) ...... #212c28
+  .summary-card ....... #212c28
+  input ............... #0d1311
+  .tab.active ......... #4fae7c com texto #08120d
+  .credits ............ #1a2320 com texto #6cc796
+  bordas .............. #28815f
+  acento .............. #4fae7c / #6cc796
+
+
+================================================================================
+FIM DO RELATORIO
+Commit anterior: c8e7252  |  Repo: https://github.com/udaniew/tabela-sac-price
+================================================================================

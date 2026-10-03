@@ -17,27 +17,34 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* o template do Vite usava `light dark`; forcamos o tema claro */
-  color-scheme: light;
+  /* tema escuro como padrao: alinha os controles nativos (scrollbar,
+     setas do input number) e o flash branco no carregamento */
+  color-scheme: dark;
 
-  --green-900: #16251f;
-  --green-800: #183127;
-  --green-700: #23402f;
-  --green-600: #2d684c;
-  --green-500: #397451;
-  --green-400: #4a8c6b;
-  --green-300: #7ab18f;
-  --slate-600: #52645a;
-  --slate-500: #607167;
-  --slate-400: #6a7a71;
-  --slate-300: #77867d;
-  --slate-200: #8a978f;
-  --line: #dce5df;
-  --line-soft: #e2e9e3;
-  --line-row: #edf1ed;
-  --bg: #eef2ee;
-  --surface: #fbfcfa;
-  --mint: #c2e1cf;
+  /* superficies, do mais profundo ao mais elevado */
+  --bg: #0d1311;
+  --bg-glow: #16241d;
+  --surface: #131b18;
+  --surface-2: #1a2320;
+  --surface-3: #212c28;
+
+  /* bordas - verde-acinzentado, com o valor mais escuro que ainda passa
+     3:1 (WCAG 1.4.11) contra o fundo mais claro onde aparece (#212c28) */
+  --line: #28815f;
+  --line-soft: #286948;
+  --line-row: #28502e;
+
+  /* texto */
+  --text: #e9f1ec;
+  --text-muted: #a3b3a9;
+  --text-dim: #7d8f84;
+
+  /* acentos */
+  --accent: #4fae7c;
+  --accent-strong: #6cc796;
+  --accent-dim: #2f6b4d;
+  --on-accent: #08120d;
+
   --radius-card: 28px;
 }
 
@@ -46,7 +53,8 @@ body {
   /* nada de flex/centering: quebra o calculo de largura e causa overflow lateral */
   min-width: 320px;
   min-height: 100vh;
-  color: var(--green-900);
+  min-height: 100dvh;
+  color: var(--text);
   background: var(--bg);
   /* trava qualquer transbordo horizontal da pagina */
   overflow-x: hidden;
@@ -80,6 +88,11 @@ button {
   cursor: pointer;
 }
 
+::selection {
+  color: var(--on-accent);
+  background: var(--accent-strong);
+}
+
 /* ============================================================
    SHELL
    ============================================================ */
@@ -90,7 +103,8 @@ button {
   padding: 42px 20px;
   padding-bottom: max(42px, env(safe-area-inset-bottom));
   background:
-    radial-gradient(circle at 10% 0%, rgba(194, 225, 207, 0.55), transparent 32%),
+    radial-gradient(circle at 10% 0%, rgba(79, 174, 124, 0.16), transparent 34%),
+    radial-gradient(circle at 92% 8%, rgba(47, 107, 77, 0.14), transparent 30%),
     var(--bg);
 }
 
@@ -101,7 +115,7 @@ button {
   border: 1px solid var(--line);
   border-radius: var(--radius-card);
   background: var(--surface);
-  box-shadow: 0 20px 60px rgba(36, 65, 51, 0.1);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
 }
 
 /* ============================================================
@@ -114,21 +128,25 @@ button {
   justify-content: space-between;
   gap: 20px;
   padding: 46px 52px 36px;
-  background: #f5f8f4;
+  background: var(--surface-2);
   border-bottom: 1px solid var(--line-soft);
 }
 
 .eyebrow {
   margin: 0 0 12px;
-  color: var(--green-400);
+  color: var(--accent-strong);
   font: 500 12px/1 "DM Mono", ui-monospace, monospace;
   letter-spacing: 0.16em;
+}
+
+h1 {
+  color: var(--text);
 }
 
 .subtitle {
   max-width: 580px;
   margin-bottom: 0;
-  color: var(--slate-400);
+  color: var(--text-muted);
   font-size: 15px;
   line-height: 1.65;
 }
@@ -140,10 +158,10 @@ button {
   height: 64px;
   place-items: center;
   border-radius: 18px;
-  color: #f9fdf9;
-  background: var(--green-600);
+  color: var(--on-accent);
+  background: var(--accent);
   font: 500 30px "DM Mono", ui-monospace, monospace;
-  box-shadow: 8px 8px 0 var(--mint);
+  box-shadow: 8px 8px 0 rgba(79, 174, 124, 0.22);
 }
 
 /* ============================================================
@@ -156,7 +174,7 @@ button {
   gap: 18px;
   align-items: end;
   padding: 28px 52px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .field {
@@ -167,7 +185,7 @@ button {
 }
 
 .field label {
-  color: var(--slate-600);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
@@ -179,21 +197,21 @@ button {
   min-width: 0;
   height: 48px;
   overflow: hidden;
-  border: 1px solid #d7e1d9;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  background: #fbfdfb;
+  background: var(--bg);
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .input-box:focus-within {
-  border-color: var(--green-400);
-  box-shadow: 0 0 0 3px rgba(77, 152, 109, 0.13);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(79, 174, 124, 0.2);
 }
 
 .input-box span {
   flex: 0 0 auto;
   padding: 0 12px;
-  color: var(--slate-200);
+  color: var(--text-dim);
   font: 500 12px "DM Mono", ui-monospace, monospace;
   white-space: nowrap;
 }
@@ -205,14 +223,18 @@ button {
   padding: 0 12px;
   border: 0;
   outline: 0;
-  color: var(--green-800);
+  color: var(--text);
   background: transparent;
   /* 16px evita o zoom automatico do iOS ao focar o campo */
   font-size: 16px;
   font-weight: 700;
 }
 
-/* o campo "Valor financiado" nao tem prefixo, o resto tem */
+.input-box input::placeholder {
+  color: var(--text-dim);
+  opacity: 0.7;
+}
+
 .input-box input:focus-visible {
   outline: none;
 }
@@ -231,10 +253,10 @@ button {
 .clear-button {
   height: 48px;
   padding: 0 18px;
-  border: 1px solid #d6e2d9;
+  border: 1px solid var(--line);
   border-radius: 12px;
-  color: #45745a;
-  background: #f3f8f3;
+  color: var(--accent-strong);
+  background: var(--surface-3);
   font-size: 13px;
   font-weight: 800;
   white-space: nowrap;
@@ -242,7 +264,7 @@ button {
 }
 
 .clear-button:hover {
-  background: #e6f1e8;
+  background: rgba(79, 174, 124, 0.14);
   transform: translateY(-1px);
 }
 
@@ -255,29 +277,29 @@ button {
   flex-wrap: wrap;
   gap: 8px;
   padding: 0 52px 26px;
-  background: #ffffff;
+  background: var(--surface);
 }
 
 .tab {
   padding: 11px 15px;
-  border: 1px solid #d9e3db;
+  border: 1px solid var(--line);
   border-radius: 999px;
-  color: var(--slate-500);
-  background: #fbfdfb;
+  color: var(--text-muted);
+  background: var(--surface-2);
   font-size: 12px;
   font-weight: 800;
   transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 }
 
 .tab:hover {
-  border-color: var(--green-300);
-  color: var(--green-600);
+  border-color: var(--accent-dim);
+  color: var(--text);
 }
 
 .tab.active {
-  border-color: var(--green-600);
-  color: #ffffff;
-  background: var(--green-600);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  background: var(--accent);
 }
 
 /* ============================================================
@@ -287,10 +309,10 @@ button {
 .message {
   margin: 0 52px 28px;
   padding: 20px 24px;
-  border: 1px dashed var(--green-300);
+  border: 1px dashed var(--accent-dim);
   border-radius: 16px;
-  color: #5e7165;
-  background: #f2f8f3;
+  color: var(--text-muted);
+  background: rgba(79, 174, 124, 0.07);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -310,7 +332,7 @@ button {
   grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   padding: 28px 52px;
-  background: #f5f8f4;
+  background: var(--surface-2);
   border-top: 1px solid var(--line-soft);
   border-bottom: 1px solid var(--line-soft);
 }
@@ -325,12 +347,12 @@ button {
   padding: 18px;
   border: 1px solid var(--line);
   border-radius: 16px;
-  background: #ffffff;
+  background: var(--surface-3);
 }
 
 .summary-card span {
   display: block;
-  color: var(--slate-200);
+  color: var(--text-dim);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -339,7 +361,7 @@ button {
 
 .summary-card strong {
   display: block;
-  color: var(--green-700);
+  color: var(--text);
   font: 500 clamp(16px, 1.6vw, 22px) "DM Mono", ui-monospace, monospace;
   letter-spacing: -0.06em;
   /* impede que um valor grande estoure o card */
@@ -347,16 +369,16 @@ button {
 }
 
 .summary-card.featured {
-  border-color: #b5d5bf;
-  background: #eaf5ed;
+  border-color: var(--accent-dim);
+  background: rgba(79, 174, 124, 0.12);
 }
 
 .summary-card.featured strong {
-  color: #24613f;
+  color: var(--accent-strong);
 }
 
 /* ============================================================
-   TABELA
+   TABELA - COMPLETA EM TODAS AS TELAS
    ============================================================ */
 
 .table-area {
@@ -370,19 +392,19 @@ button {
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 14px;
-  margin-bottom: 20px;
+  margin-bottom: 16px;
 }
 
 .table-header h2 {
   margin-bottom: 6px;
-  color: var(--green-700);
+  color: var(--text);
   font-size: 20px;
   letter-spacing: -0.035em;
 }
 
 .table-header p {
   margin-bottom: 0;
-  color: var(--slate-300);
+  color: var(--text-dim);
   font-size: 12px;
 }
 
@@ -390,164 +412,160 @@ button {
   flex: 0 0 auto;
   padding: 8px 11px;
   border-radius: 8px;
-  color: #3f7956;
-  background: #e7f2e9;
+  color: var(--accent-strong);
+  background: rgba(79, 174, 124, 0.14);
   font: 500 11px "DM Mono", ui-monospace, monospace;
   white-space: nowrap;
 }
 
-.desktop-table-wrapper {
-  /* unico ponto da pagina autorizado a rolar na horizontal */
+/* dica de rolagem: so aparece quando a tabela precisa deslizar */
+.scroll-hint {
+  display: none;
+  margin: 0 0 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--text-dim);
+  background: var(--surface-2);
+  font-size: 11px;
+  text-align: center;
+}
+
+/* unico elemento autorizado a rolar na horizontal */
+.table-scroll {
   max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   -webkit-overflow-scrolling: touch;
-  border: 1px solid #dae4dc;
+  border: 1px solid var(--line);
   border-radius: 16px;
+  background: var(--surface-2);
   scrollbar-width: thin;
+  scrollbar-color: var(--line) var(--surface-2);
 }
 
-.desktop-table-wrapper table {
+.table-scroll::-webkit-scrollbar {
+  height: 10px;
+}
+
+.table-scroll::-webkit-scrollbar-track {
+  background: var(--surface-2);
+}
+
+.table-scroll::-webkit-scrollbar-thumb {
+  border: 2px solid var(--surface-2);
+  border-radius: 999px;
+  background: var(--line);
+}
+
+.table-scroll table {
   width: 100%;
-  min-width: 760px;
-  border-collapse: collapse;
-  background: #ffffff;
+  /* fora do mobile as 6 colunas cabem; abaixo disso a tabela desliza */
+  min-width: 720px;
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
-.desktop-table-wrapper th,
-.desktop-table-wrapper td {
-  padding: 14px 16px;
+.table-scroll th,
+.table-scroll td {
+  padding: 13px 16px;
   border-bottom: 1px solid var(--line-row);
   text-align: right;
   white-space: nowrap;
 }
 
-.desktop-table-wrapper th.center,
-.desktop-table-wrapper td.center {
+.table-scroll th.center,
+.table-scroll td.center {
   text-align: center;
 }
 
-.desktop-table-wrapper th {
-  color: var(--slate-200);
-  background: #f2f6f2;
+.table-scroll th {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  color: var(--text-muted);
+  background: var(--surface-3);
   font-size: 10px;
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.desktop-table-wrapper td {
-  color: var(--slate-600);
+.table-scroll td {
+  color: var(--text-muted);
+  background: var(--surface-2);
   font: 400 12px "DM Mono", ui-monospace, monospace;
 }
 
-.desktop-table-wrapper td.center {
-  color: var(--green-500);
+/* coluna "Parcela" permanece visivel enquanto a tabela desliza */
+.table-scroll th:first-child,
+.table-scroll td:first-child {
+  position: sticky;
+  left: 0;
+  border-right: 1px solid var(--line-row);
+}
+
+.table-scroll th:first-child {
+  z-index: 4;
+}
+
+.table-scroll td:first-child {
+  z-index: 2;
+}
+
+.table-scroll td.center {
+  color: var(--accent-strong);
   font-weight: 700;
 }
 
-.desktop-table-wrapper td.strong-value {
-  color: var(--green-800);
+.table-scroll td.strong-value {
+  color: var(--text);
   font-weight: 700;
 }
 
-.desktop-table-wrapper tbody tr:last-child td {
+.table-scroll tbody tr:last-child td {
   border-bottom: 0;
 }
 
-.desktop-table-wrapper tbody tr:hover td {
-  background: #f8fbf8;
+.table-scroll tbody tr:hover td {
+  background: var(--surface-3);
+}
+
+.table-scroll tbody tr:hover td:first-child {
+  background: var(--surface-3);
 }
 
 /* ============================================================
-   LISTA EM CARDS (substitui a tabela no mobile)
-   ============================================================ */
-
-.mobile-list {
-  display: none;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.mobile-row {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: #ffffff;
-}
-
-.mobile-row-title {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--line-row);
-}
-
-.mobile-row-title span {
-  color: var(--green-500);
-  font: 700 11px "DM Mono", ui-monospace, monospace;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  white-space: nowrap;
-}
-
-.mobile-row-title strong {
-  color: var(--green-800);
-  font: 500 18px "DM Mono", ui-monospace, monospace;
-  letter-spacing: -0.04em;
-  overflow-wrap: anywhere;
-}
-
-.mobile-values {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px 16px;
-}
-
-.mobile-values > div {
-  display: grid;
-  gap: 4px;
-  min-width: 0;
-}
-
-.mobile-values span {
-  color: var(--slate-200);
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-}
-
-.mobile-values strong {
-  color: var(--slate-600);
-  font: 500 13px "DM Mono", ui-monospace, monospace;
-  letter-spacing: -0.03em;
-  overflow-wrap: anywhere;
-}
-
-/* ============================================================
-   FOOTER
+   FOOTER / CREDITOS
    ============================================================ */
 
 .footer {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: space-between;
   gap: 10px 16px;
   padding: 24px 52px 30px;
-  color: var(--slate-200);
+  color: var(--text-dim);
   font: 11px "DM Mono", ui-monospace, monospace;
+}
+
+.credits {
+  flex: 0 0 auto;
+  padding: 7px 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--accent-strong);
+  background: var(--surface-2);
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
 }
 
 /* ============================================================
    RESPONSIVO
    ============================================================ */
 
-/* tablet: 2 colunas no formulario e no resumo */
+/* tablet */
 @media (max-width: 1100px) {
   .header,
   .form-area,
@@ -577,14 +595,10 @@ button {
   }
 }
 
-/* abaixo de 820px a tabela de 6 colunas nao cabe: vira lista de cards */
+/* a partir daqui a tabela comecou a deslizar */
 @media (max-width: 820px) {
-  .desktop-table-wrapper {
-    display: none;
-  }
-
-  .mobile-list {
-    display: flex;
+  .scroll-hint {
+    display: block;
   }
 }
 
@@ -610,7 +624,7 @@ button {
     height: 48px;
     border-radius: 14px;
     font-size: 22px;
-    box-shadow: 5px 5px 0 var(--mint);
+    box-shadow: 5px 5px 0 rgba(79, 174, 124, 0.22);
   }
 
   .form-area,
@@ -643,12 +657,28 @@ button {
     margin: 0 16px 24px;
   }
 
-  .mobile-values {
-    grid-template-columns: minmax(0, 1fr);
+  /* tabela compacta: mais colunas visiveis antes de deslizar */
+  .table-scroll th,
+  .table-scroll td {
+    padding: 11px 10px;
+  }
+
+  .table-scroll th {
+    font-size: 9px;
+    letter-spacing: 0.03em;
+  }
+
+  .table-scroll td {
+    font-size: 11px;
+  }
+
+  .credits {
+    align-self: stretch;
+    text-align: center;
   }
 }
 
-/* telas muito estreitas: garante que nenhum valor estoure a largura */
+/* telas muito estreitas: nenhum valor estoura a largura */
 @media (max-width: 360px) {
   .header,
   .form-area,
@@ -664,19 +694,13 @@ button {
     margin-left: 16px;
     margin-right: 16px;
   }
-
-  .mobile-row-title {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 4px;
-  }
 }
 
 /* hover so faz sentido em dispositivos que realmente tem cursor */
 @media (hover: none) {
   .clear-button:hover,
   .tab:hover,
-  .desktop-table-wrapper tbody tr:hover td {
+  .table-scroll tbody tr:hover td {
     transform: none;
     background: inherit;
   }
@@ -689,3 +713,25 @@ button {
     animation-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   CONTRASTE - medido com a formula oficial do WCAG 2.1
+
+   Texto sobre as superficies:
+     --text       #e9f1ec / #1a2320  = 13,99:1  AAA
+     --text       #e9f1ec / #0d1311  = 16,33:1  AAA
+     --text-muted #a3b3a9 / #1a2320  =  7,34:1  AAA
+     --text-muted #a3b3a9 / #212c28  =  6,58:1  AA
+     --text-dim   #7d8f84 / #1a2320  =  4,70:1  AA
+     --text-dim   #7d8f84 / #0d1311  =  5,48:1  AA
+     --accent-str #6cc796 / #1a2320  =  7,85:1  AAA
+     --accent-str #6cc796 / #212c28  =  7,04:1  AAA
+     --on-accent  #08120d / #4fae7c  =  6,96:1  AA   (botao ativo)
+     --accent     #4fae7c / #0d1311  =  6,87:1  AA   (logo)
+
+   Bordas (nao-texto, minimo 3:1):
+     --line #28815f sobre #212c28 = 3,02:1  (pior caso)
+     --line #28815f sobre #0d1311 = 3,93:1
+
+   --line-row e decorativo (divisoria de linha), por isso fica abaixo de 3:1.
+   ============================================================ */

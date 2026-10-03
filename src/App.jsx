@@ -157,27 +157,6 @@ RowValues.propTypes = {
   row: scheduleRowShape.isRequired,
 };
 
-function MobileRow({ row }) {
-  return (
-    <article className="mobile-row">
-      <div className="mobile-row-title">
-        <span>Parcela {row.installment}</span>
-        <strong>{currency(row.payment)}</strong>
-      </div>
-      <div className="mobile-values">
-        <div><span>Saldo inicial</span><strong>{currency(row.openingBalance)}</strong></div>
-        <div><span>Juros</span><strong>{currency(row.interest)}</strong></div>
-        <div><span>Amortização</span><strong>{currency(row.amortization)}</strong></div>
-        <div><span>Saldo final</span><strong>{currency(row.closingBalance)}</strong></div>
-      </div>
-    </article>
-  );
-}
-
-MobileRow.propTypes = {
-  row: scheduleRowShape.isRequired,
-};
-
 export default function App() {
   const [form, setForm] = useState(initialForm);
   const [system, setSystem] = useState('SAC');
@@ -306,7 +285,11 @@ export default function App() {
                 <span className="badge">{system === 'SAC' ? 'Amortização constante' : 'Parcela constante'}</span>
               </div>
 
-              <div className="desktop-table-wrapper">
+              <p className="scroll-hint" aria-hidden="true">
+                Deslize a tabela para o lado para ver todas as colunas.
+              </p>
+
+              <div className="table-scroll">
                 <table>
                   <thead>
                     <tr>
@@ -325,10 +308,6 @@ export default function App() {
                   </tbody>
                 </table>
               </div>
-
-              <div className="mobile-list">
-                {schedule.map((row) => <MobileRow key={row.installment} row={row} />)}
-              </div>
             </section>
           </>
         )}
@@ -336,6 +315,7 @@ export default function App() {
         <footer className="footer">
           <span>Valores aproximados para estudo pessoal.</span>
           <span>Taxa informada como percentual mensal.</span>
+          <span className="credits">by Daniel lira</span>
         </footer>
       </section>
     </main>
