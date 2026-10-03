@@ -1,71 +1,60 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap");
 
-:root {
-  font-family: "Manrope", Arial, sans-serif;
-  color: #16251f;
-  background: #eef2ee;
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
+/* ============================================================
+   RESET / BASE
+   ============================================================ */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
 }
 
-* {
-  box-sizing: border-box;
+:root {
+  font-family: "Manrope", system-ui, -apple-system, "Segoe UI", Arial, sans-serif;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* o template do Vite usava `light dark`; forcamos o tema claro */
+  color-scheme: light;
+
+  --green-900: #16251f;
+  --green-800: #183127;
+  --green-700: #23402f;
+  --green-600: #2d684c;
+  --green-500: #397451;
+  --green-400: #4a8c6b;
+  --green-300: #7ab18f;
+  --slate-600: #52645a;
+  --slate-500: #607167;
+  --slate-400: #6a7a71;
+  --slate-300: #77867d;
+  --slate-200: #8a978f;
+  --line: #dce5df;
+  --line-soft: #e2e9e3;
+  --line-row: #edf1ed;
+  --bg: #eef2ee;
+  --surface: #fbfcfa;
+  --mint: #c2e1cf;
+  --radius-card: 28px;
 }
 
 body {
   margin: 0;
+  /* nada de flex/centering: quebra o calculo de largura e causa overflow lateral */
   min-width: 320px;
   min-height: 100vh;
+  color: var(--green-900);
+  background: var(--bg);
+  /* trava qualquer transbordo horizontal da pagina */
+  overflow-x: hidden;
 }
 
-button,
-input {
-  font: inherit;
-}
-
-button {
-  cursor: pointer;
-}
-
-.app-shell {
+#root {
   min-height: 100vh;
-  padding: 42px 20px;
-  background:
-    radial-gradient(
-      circle at 10% 0%,
-      rgba(194, 225, 207, 0.55),
-      transparent 32%
-    ),
-    #eef2ee;
-}
-
-.calculator-card {
-  width: min(1380px, 100%);
-  margin: 0 auto;
-  overflow: hidden;
-  border: 1px solid #dce5df;
-  border-radius: 28px;
-  background: #fbfcfa;
-  box-shadow: 0 20px 60px rgba(36, 65, 51, 0.1);
-}
-
-.page-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 24px;
-  padding: 46px 52px 36px;
-  background: #f5f8f4;
-  border-bottom: 1px solid #e2e9e3;
-}
-
-.eyebrow {
-  margin: 0 0 12px;
-  color: #4a8c6b;
-  font:
-    500 12px/1 "DM Mono",
-    monospace;
-  letter-spacing: 0.16em;
+  min-height: 100dvh;
 }
 
 h1,
@@ -76,21 +65,75 @@ p {
 
 h1 {
   margin-bottom: 12px;
-  color: #183127;
-  font-size: clamp(30px, 5vw, 54px);
-  line-height: 1;
+  font-size: clamp(28px, 6vw, 54px);
+  line-height: 1.05;
   letter-spacing: -0.055em;
+}
+
+button,
+input {
+  font: inherit;
+  color: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+/* ============================================================
+   SHELL
+   ============================================================ */
+
+.app-shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  padding: 42px 20px;
+  padding-bottom: max(42px, env(safe-area-inset-bottom));
+  background:
+    radial-gradient(circle at 10% 0%, rgba(194, 225, 207, 0.55), transparent 32%),
+    var(--bg);
+}
+
+.calculator {
+  width: min(1380px, 100%);
+  margin-inline: auto;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgba(36, 65, 51, 0.1);
+}
+
+/* ============================================================
+   HEADER
+   ============================================================ */
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 46px 52px 36px;
+  background: #f5f8f4;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--green-400);
+  font: 500 12px/1 "DM Mono", ui-monospace, monospace;
+  letter-spacing: 0.16em;
 }
 
 .subtitle {
   max-width: 580px;
   margin-bottom: 0;
-  color: #6a7a71;
+  color: var(--slate-400);
   font-size: 15px;
   line-height: 1.65;
 }
 
-.header-mark {
+.logo-mark {
   display: grid;
   flex: 0 0 64px;
   width: 64px;
@@ -98,14 +141,16 @@ h1 {
   place-items: center;
   border-radius: 18px;
   color: #f9fdf9;
-  background: #2d684c;
-  font:
-    500 30px "DM Mono",
-    monospace;
-  box-shadow: 8px 8px 0 #c8ddcf;
+  background: var(--green-600);
+  font: 500 30px "DM Mono", ui-monospace, monospace;
+  box-shadow: 8px 8px 0 var(--mint);
 }
 
-.form-panel {
+/* ============================================================
+   FORM
+   ============================================================ */
+
+.form-area {
   display: grid;
   grid-template-columns: 1.4fr 1fr 1fr auto;
   gap: 18px;
@@ -114,64 +159,73 @@ h1 {
   background: #ffffff;
 }
 
-.field-group {
+.field {
   display: grid;
   gap: 9px;
+  /* impede que o input estoure a coluna do grid */
+  min-width: 0;
 }
 
-.field-group label {
-  color: #52645a;
+.field label {
+  color: var(--slate-600);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.02em;
 }
 
-.input-with-prefix,
-.input-with-suffix {
+.input-box {
   display: flex;
   align-items: center;
-  overflow: hidden;
+  min-width: 0;
   height: 48px;
+  overflow: hidden;
   border: 1px solid #d7e1d9;
   border-radius: 12px;
   background: #fbfdfb;
-  transition:
-    border-color 160ms ease,
-    box-shadow 160ms ease;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
-.input-with-prefix:focus-within,
-.input-with-suffix:focus-within {
-  border-color: #4d986d;
+.input-box:focus-within {
+  border-color: var(--green-400);
   box-shadow: 0 0 0 3px rgba(77, 152, 109, 0.13);
 }
 
-.input-with-prefix span,
-.input-with-suffix span {
-  padding: 0 14px;
-  color: #829087;
-  font:
-    500 12px "DM Mono",
-    monospace;
+.input-box span {
+  flex: 0 0 auto;
+  padding: 0 12px;
+  color: var(--slate-200);
+  font: 500 12px "DM Mono", ui-monospace, monospace;
   white-space: nowrap;
 }
 
-.input-with-prefix input,
-.input-with-suffix input {
+.input-box input {
   width: 100%;
-  height: 100%;
   min-width: 0;
-  padding: 0 14px;
+  height: 100%;
+  padding: 0 12px;
   border: 0;
   outline: 0;
-  color: #1c3226;
+  color: var(--green-800);
   background: transparent;
-  font-size: 15px;
+  /* 16px evita o zoom automatico do iOS ao focar o campo */
+  font-size: 16px;
   font-weight: 700;
 }
 
-.input-with-prefix input {
-  padding-left: 0;
+/* o campo "Valor financiado" nao tem prefixo, o resto tem */
+.input-box input:focus-visible {
+  outline: none;
+}
+
+.input-box input::-webkit-outer-spin-button,
+.input-box input::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.input-box input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 .clear-button {
@@ -183,9 +237,8 @@ h1 {
   background: #f3f8f3;
   font-size: 13px;
   font-weight: 800;
-  transition:
-    background 160ms ease,
-    transform 160ms ease;
+  white-space: nowrap;
+  transition: background 160ms ease, transform 160ms ease;
 }
 
 .clear-button:hover {
@@ -193,57 +246,91 @@ h1 {
   transform: translateY(-1px);
 }
 
-.system-tabs {
+/* ============================================================
+   TABS
+   ============================================================ */
+
+.tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
   padding: 0 52px 26px;
   background: #ffffff;
 }
 
-.tab-button {
+.tab {
   padding: 11px 15px;
   border: 1px solid #d9e3db;
   border-radius: 999px;
-  color: #607167;
+  color: var(--slate-500);
   background: #fbfdfb;
   font-size: 12px;
   font-weight: 800;
-  transition: all 160ms ease;
+  transition: border-color 160ms ease, color 160ms ease, background 160ms ease;
 }
 
-.tab-button:hover {
-  border-color: #7ab18f;
-  color: #2d684c;
+.tab:hover {
+  border-color: var(--green-300);
+  color: var(--green-600);
 }
 
-.tab-button.active {
-  border-color: #2d684c;
+.tab.active {
+  border-color: var(--green-600);
   color: #ffffff;
-  background: #2d684c;
+  background: var(--green-600);
 }
 
-.summary-grid {
+/* ============================================================
+   MENSAGEM DE ESTADO
+   ============================================================ */
+
+.message {
+  margin: 0 52px 28px;
+  padding: 20px 24px;
+  border: 1px dashed var(--green-300);
+  border-radius: 16px;
+  color: #5e7165;
+  background: #f2f8f3;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
+.table-header .message {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 12px;
+}
+
+/* ============================================================
+   RESUMO
+   ============================================================ */
+
+.summary {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   padding: 28px 52px;
   background: #f5f8f4;
-  border-top: 1px solid #e2e9e3;
-  border-bottom: 1px solid #e2e9e3;
+  border-top: 1px solid var(--line-soft);
+  border-bottom: 1px solid var(--line-soft);
 }
 
 .summary-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 0;
   min-height: 102px;
   padding: 18px;
-  border: 1px solid #dce6de;
+  border: 1px solid var(--line);
   border-radius: 16px;
   background: #ffffff;
 }
 
 .summary-card span {
   display: block;
-  margin-bottom: 12px;
-  color: #718078;
+  color: var(--slate-200);
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
@@ -252,97 +339,96 @@ h1 {
 
 .summary-card strong {
   display: block;
-  color: #233a2c;
-  font:
-    500 clamp(17px, 2vw, 23px) "DM Mono",
-    monospace;
+  color: var(--green-700);
+  font: 500 clamp(16px, 1.6vw, 22px) "DM Mono", ui-monospace, monospace;
   letter-spacing: -0.06em;
+  /* impede que um valor grande estoure o card */
+  overflow-wrap: anywhere;
 }
 
-.summary-card--primary {
+.summary-card.featured {
   border-color: #b5d5bf;
   background: #eaf5ed;
 }
 
-.summary-card--primary strong {
+.summary-card.featured strong {
   color: #24613f;
 }
 
-.summary-card--dark {
-  border-color: #2d684c;
-  background: #2d684c;
-}
+/* ============================================================
+   TABELA
+   ============================================================ */
 
-.summary-card--dark span,
-.summary-card--dark strong {
-  color: #f3fbf4;
-}
-
-.table-section {
+.table-area {
   padding: 34px 52px 10px;
-  background: #fbfcfa;
+  background: var(--surface);
 }
 
-.table-heading {
+.table-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 14px;
   margin-bottom: 20px;
 }
 
-.table-heading h2 {
+.table-header h2 {
   margin-bottom: 6px;
-  color: #23402f;
+  color: var(--green-700);
   font-size: 20px;
   letter-spacing: -0.035em;
 }
 
-.table-heading p {
+.table-header p {
   margin-bottom: 0;
-  color: #77867d;
+  color: var(--slate-300);
   font-size: 12px;
 }
 
 .badge {
+  flex: 0 0 auto;
   padding: 8px 11px;
   border-radius: 8px;
   color: #3f7956;
   background: #e7f2e9;
-  font:
-    500 11px "DM Mono",
-    monospace;
+  font: 500 11px "DM Mono", ui-monospace, monospace;
   white-space: nowrap;
 }
 
-.table-wrapper {
+.desktop-table-wrapper {
+  /* unico ponto da pagina autorizado a rolar na horizontal */
+  max-width: 100%;
   overflow-x: auto;
+  overscroll-behavior-x: contain;
+  -webkit-overflow-scrolling: touch;
   border: 1px solid #dae4dc;
   border-radius: 16px;
+  scrollbar-width: thin;
 }
 
-table {
+.desktop-table-wrapper table {
   width: 100%;
-  min-width: 850px;
+  min-width: 760px;
   border-collapse: collapse;
   background: #ffffff;
 }
 
-th,
-td {
+.desktop-table-wrapper th,
+.desktop-table-wrapper td {
   padding: 14px 16px;
-  border-bottom: 1px solid #edf1ed;
+  border-bottom: 1px solid var(--line-row);
   text-align: right;
   white-space: nowrap;
 }
 
-th:first-child,
-td:first-child {
+.desktop-table-wrapper th.center,
+.desktop-table-wrapper td.center {
   text-align: center;
 }
 
-th {
-  color: #708178;
+.desktop-table-wrapper th {
+  color: var(--slate-200);
   background: #f2f6f2;
   font-size: 10px;
   font-weight: 800;
@@ -350,115 +436,256 @@ th {
   letter-spacing: 0.06em;
 }
 
-td {
-  color: #52645a;
-  font:
-    400 12px "DM Mono",
-    monospace;
+.desktop-table-wrapper td {
+  color: var(--slate-600);
+  font: 400 12px "DM Mono", ui-monospace, monospace;
 }
 
-tbody tr:last-child td {
+.desktop-table-wrapper td.center {
+  color: var(--green-500);
+  font-weight: 700;
+}
+
+.desktop-table-wrapper td.strong-value {
+  color: var(--green-800);
+  font-weight: 700;
+}
+
+.desktop-table-wrapper tbody tr:last-child td {
   border-bottom: 0;
 }
 
-tbody tr:hover td {
+.desktop-table-wrapper tbody tr:hover td {
   background: #f8fbf8;
 }
 
-.installment-number {
-  color: #397451;
-  font-weight: 700;
+/* ============================================================
+   LISTA EM CARDS (substitui a tabela no mobile)
+   ============================================================ */
+
+.mobile-list {
+  display: none;
+  flex-direction: column;
+  gap: 10px;
 }
 
-.payment-value {
-  color: #233f30;
-  font-weight: 700;
-}
-
-.empty-state {
-  margin: 32px 52px;
-  padding: 28px;
-  border: 1px dashed #b7cdbd;
+.mobile-row {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
   border-radius: 16px;
-  color: #5e7165;
-  background: #f2f8f3;
-  font-size: 14px;
-  line-height: 1.6;
+  background: #ffffff;
 }
 
-.page-footer {
+.mobile-row-title {
   display: flex;
+  align-items: baseline;
   justify-content: space-between;
-  gap: 16px;
-  padding: 24px 52px 30px;
-  color: #8a978f;
-  font:
-    11px "DM Mono",
-    monospace;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--line-row);
 }
 
-@media (max-width: 900px) {
-  .page-header,
-  .form-panel,
-  .system-tabs,
-  .summary-grid,
-  .table-section,
-  .page-footer {
+.mobile-row-title span {
+  color: var(--green-500);
+  font: 700 11px "DM Mono", ui-monospace, monospace;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+}
+
+.mobile-row-title strong {
+  color: var(--green-800);
+  font: 500 18px "DM Mono", ui-monospace, monospace;
+  letter-spacing: -0.04em;
+  overflow-wrap: anywhere;
+}
+
+.mobile-values {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 16px;
+}
+
+.mobile-values > div {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+
+.mobile-values span {
+  color: var(--slate-200);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.mobile-values strong {
+  color: var(--slate-600);
+  font: 500 13px "DM Mono", ui-monospace, monospace;
+  letter-spacing: -0.03em;
+  overflow-wrap: anywhere;
+}
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+
+.footer {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 24px 52px 30px;
+  color: var(--slate-200);
+  font: 11px "DM Mono", ui-monospace, monospace;
+}
+
+/* ============================================================
+   RESPONSIVO
+   ============================================================ */
+
+/* tablet: 2 colunas no formulario e no resumo */
+@media (max-width: 1100px) {
+  .header,
+  .form-area,
+  .tabs,
+  .summary,
+  .table-area,
+  .footer {
     padding-left: 26px;
     padding-right: 26px;
   }
 
-  .form-panel {
-    grid-template-columns: repeat(2, 1fr);
+  .message {
+    margin-left: 26px;
+    margin-right: 26px;
+  }
+
+  .form-area {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .clear-button {
     width: 100%;
   }
 
-  .summary-grid {
-    grid-template-columns: repeat(2, 1fr);
+  .summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* abaixo de 820px a tabela de 6 colunas nao cabe: vira lista de cards */
+@media (max-width: 820px) {
+  .desktop-table-wrapper {
+    display: none;
+  }
+
+  .mobile-list {
+    display: flex;
   }
 }
 
 @media (max-width: 560px) {
   .app-shell {
     padding: 0;
+    padding-bottom: env(safe-area-inset-bottom);
   }
 
-  .calculator-card {
+  .calculator {
     border: 0;
     border-radius: 0;
   }
 
-  .page-header {
-    padding-top: 34px;
+  .header {
+    padding-top: calc(34px + env(safe-area-inset-top));
+    padding-bottom: 28px;
   }
 
-  .header-mark {
+  .logo-mark {
     flex-basis: 48px;
     width: 48px;
     height: 48px;
     border-radius: 14px;
     font-size: 22px;
+    box-shadow: 5px 5px 0 var(--mint);
   }
 
-  .form-panel,
-  .summary-grid {
-    grid-template-columns: 1fr;
+  .form-area,
+  .summary {
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .system-tabs {
+  .tabs {
     flex-direction: column;
   }
 
-  .tab-button {
+  .tab {
     width: 100%;
+    /* alvo de toque confortavel */
+    min-height: 44px;
+    padding: 12px 16px;
   }
 
-  .table-heading,
-  .page-footer {
-    align-items: flex-start;
+  .table-header,
+  .footer {
     flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table-area {
+    padding-top: 26px;
+  }
+
+  .message {
+    margin: 0 16px 24px;
+  }
+
+  .mobile-values {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* telas muito estreitas: garante que nenhum valor estoure a largura */
+@media (max-width: 360px) {
+  .header,
+  .form-area,
+  .tabs,
+  .summary,
+  .table-area,
+  .footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .message {
+    margin-left: 16px;
+    margin-right: 16px;
+  }
+
+  .mobile-row-title {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+}
+
+/* hover so faz sentido em dispositivos que realmente tem cursor */
+@media (hover: none) {
+  .clear-button:hover,
+  .tab:hover,
+  .desktop-table-wrapper tbody tr:hover td {
+    transform: none;
+    background: inherit;
+  }
+}
+
+/* respeita quem pediu menos movimento */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
   }
 }
