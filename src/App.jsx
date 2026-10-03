@@ -136,14 +136,18 @@ function App() {
 
   return (
     <main className="app-shell">
-      <section className="calculator-card">
+      <section
+        className="calculatogit init
+r-card"
+      >
         <header className="page-header">
           <div>
             <p className="eyebrow">ESTUDO DE FINANCIAMENTO</p>
-            <h1>Tabela SAC e Price - By Daniel lira</h1>
+            <h1>Tabela SAC e Price teste - By Daniel lira (BETA)</h1>
             <p className="subtitle">
               Compare a evolução das parcelas, juros e amortização do seu
-              financiamento.
+              financiamento. Este site é apenas para testes de estudo, não leve
+              nada tão a serio aqui.
             </p>
           </div>
           <div className="header-mark" aria-hidden="true">
