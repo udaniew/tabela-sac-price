@@ -51,12 +51,22 @@ function numberFormat(value) {
 }
 
 // Tabela SAC — amortizacao constante.
-// Amortizacao = PV / n ; Juros = i * saldoDevedorAnterior ; Parcela = Amortizacao + Juros.
+// A primeira linha e o MES 0: saldo inicial, sem prestacao ainda.
+// Depois, Amortizacao = PV / n ; Juros = i * saldoDevedorAnterior; Parcela = Amort + Juros.
 // Todo o bookkeeping e feito em centavos inteiros, entao o saldo nunca deriva.
 function calculateSac(principal, rate, months) {
   const totalCents = toCents(principal);
   const constantAmortization = Math.round(totalCents / months);
-  const rows = [];
+  const rows = [
+    {
+      installment: 0,
+      openingBalance: fromCents(totalCents),
+      interest: 0,
+      amortization: 0,
+      payment: 0,
+      closingBalance: fromCents(totalCents),
+    },
+  ];
   let balance = totalCents;
 
   for (let index = 1; index <= months && balance > 0; index += 1) {
@@ -82,7 +92,8 @@ function calculateSac(principal, rate, months) {
 }
 
 // Tabela Price — parcela constante.
-// PMT = PV * i * (1+i)^n / ((1+i)^n - 1) ; Juros = i * saldoDevedorAnterior ; Amortizacao = PMT - Juros.
+// Primeira linha e o MES 0: saldo inicial, sem prestacao.
+// Depois, PMT = PV * i * (1+i)^n / ((1+i)^n - 1); Juros = i * saldoDevedorAnterior; Amort = PMT - Juros.
 function calculatePrice(principal, rate, months) {
   const totalCents = toCents(principal);
   const factor = (1 + rate) ** months;
@@ -90,7 +101,16 @@ function calculatePrice(principal, rate, months) {
     ? Math.round(totalCents / months)
     : toCents(((totalCents / 100) * rate * factor) / (factor - 1));
 
-  const rows = [];
+  const rows = [
+    {
+      installment: 0,
+      openingBalance: fromCents(totalCents),
+      interest: 0,
+      amortization: 0,
+      payment: 0,
+      closingBalance: fromCents(totalCents),
+    },
+  ];
   let balance = totalCents;
 
   for (let index = 1; index <= months && balance > 0; index += 1) {
@@ -160,6 +180,24 @@ RowValues.propTypes = {
 export default function App() {
   const [form, setForm] = useState(initialForm);
   const [system, setSystem] = useState('SAC');
+  // tema: escuro por padrao. A preferencia e salva em localStorage para
+  // sobreviver a recarregamentos, e o estado inicial e lido ANTES do primeiro
+  // paint para evitar o flash do tema inverso.
+  const [theme, setTheme] = useState(() => {
+    try {
+      return window.localStorage.getItem('theme') || 'dark';
+    } catch {
+      return 'dark';
+    }
+  });
+
+  function toggleTheme() {
+    setTheme((current) => {
+      const next = current === 'dark' ? 'light' : 'dark';
+      try { window.localStorage.setItem('theme', next); } catch { /* localStorage indisponivel */ }
+      return next;
+    });
+  }
 
   const principal = toNumber(form.principal);
   const rate = toNumber(form.rate) / 100;
@@ -175,18 +213,21 @@ export default function App() {
   }, [principal, rate, months, system]);
 
   const totals = useMemo(() => {
+    // a primeira linha e o MES 0 (saldo inicial, sem prestacao).
+    // Os resumos de primeira/ultima parcela e total pagos devem pular essa linha.
+    const payments = schedule.filter((row) => row.installment > 0);
     let totalPaid = 0;
     let totalInterest = 0;
     let totalAmortized = 0;
 
-    schedule.forEach((row) => {
+    payments.forEach((row) => {
       totalPaid += row.payment;
       totalInterest += row.interest;
       totalAmortized += row.amortization;
     });
 
-    const firstRow = schedule.length > 0 ? schedule[0] : null;
-    const lastRow = schedule.length > 0 ? schedule[schedule.length - 1] : null;
+    const firstRow = payments.length > 0 ? payments[0] : null;
+    const lastRow = payments.length > 0 ? payments[payments.length - 1] : null;
 
     return {
       firstPayment: firstRow ? firstRow.payment : 0,
@@ -209,11 +250,11 @@ export default function App() {
   const invalidInputs = principal <= 0 || months <= 0 || rate < 0;
   // Em combinacoes extremas (taxa muito alta para o prazo) a amortizacao cai
   // abaixo de 1 centavo e a tabela nao existe. Nesses casos avisamos o usuario.
-  const unamortizable = schedule.some((row) => row.amortization <= 0);
+  const unamortizable = schedule.some((row) => row.installment > 0 && row.amortization <= 0);
   const invalid = invalidInputs || schedule.length === 0 || unamortizable;
 
   return (
-    <main className="app-shell">
+    <main className="app-shell" data-theme={theme}>
       <section className="calculator">
         <header className="header">
           <div>
@@ -221,7 +262,19 @@ export default function App() {
             <h1>Tabela SAC e Price</h1>
             <p className="subtitle">Compare parcelas, juros e amortização do seu financiamento.</p>
           </div>
-          <div className="logo-mark">∑</div>
+          <div className="header-actions">
+            <button
+              type="button"
+              className="theme-toggle"
+              onClick={toggleTheme}
+              aria-label={theme === 'dark' ? 'Ativar modo claro' : 'Ativar modo escuro'}
+              title={theme === 'dark' ? 'Alternar para modo claro' : 'Alternar para modo escuro'}
+            >
+              {theme === 'dark' ? '☀' : 'moon'}
+              <span>{theme === 'dark' ? 'Claro' : 'Escuro'}</span>
+            </button>
+            <div className="logo-mark">∑</div>
+          </div>
         </header>
 
         <section className="form-area">
@@ -277,7 +330,7 @@ export default function App() {
               <div className="table-header">
                 <div>
                   <h2>Amortização {system}</h2>
-                  <p>{schedule.length} parcelas com taxa de {numberFormat(toNumber(form.rate))}% ao mês.</p>
+                  <p>{schedule.length - 1} parcelas com taxa de {numberFormat(toNumber(form.rate))}% ao mês.</p>
                 </div>
                 {monthsCapped && (
                   <div className="message">Prazo limitado a {MAX_MONTHS} meses para manter a tabela navegável.</div>

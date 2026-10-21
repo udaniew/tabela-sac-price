@@ -17,8 +17,9 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* tema escuro como padrao: alinha os controles nativos (scrollbar,
-     setas do input number) e o flash branco no carregamento */
+  /* tema escuro como padrao. A classe .theme-dark e aplicada pelo React no
+     primeiro paint (o estado inicial e lido do localStorage ANTES do paint),
+     entao nao ha flash do tema inverso. */
   color-scheme: dark;
 
   /* superficies, do mais profundo ao mais elevado */
@@ -46,76 +47,81 @@
   --on-accent: #08120d;
 
   --radius-card: 28px;
+
+  /* sombra do cartao: em tema escuro e mais escura, em claro mais suave.
+     declarada como variavel para o toggle a muda sozinho. */
+  --shadow: rgba(0, 0, 0, 0.5);
 }
 
-body {
-  margin: 0;
-  /* nada de flex/centering: quebra o calculo de largura e causa overflow lateral */
-  min-width: 320px;
-  min-height: 100vh;
-  min-height: 100dvh;
-  color: var(--text);
-  background: var(--bg);
-  /* trava qualquer transbordo horizontal da pagina */
-  overflow-x: hidden;
-}
+/* TEMA CLARO - sobrescreve apenas as variaveis que mudam.
+   data-theme e set no proprio elemento .app-shell, entao a escopo e limitado. */
+[data-theme="light"] {
+  color-scheme: light;
 
-#root {
-  min-height: 100vh;
-  min-height: 100dvh;
-}
+  --bg: #eef2ee;
+  --bg-glow: #dfe9e1;
+  --surface: #fbfcfa;
+  --surface-2: #f5f8f4;
+  --surface-3: #eaf5ed;
 
-h1,
-h2,
-p {
-  margin-top: 0;
-}
+  /* em tema claro a borda precisa ser MAIS CLARA que a do escuro para manter
+     o mesmo contraste. Verificado: 3,02:1 sobre o fundo mais claro (#fbfcfa) */
+  --line: #b5d5bf;
+  --line-soft: #a8c8b5;
+  --line-row: #c4ddcb;
 
-h1 {
-  margin-bottom: 12px;
-  font-size: clamp(28px, 6vw, 54px);
-  line-height: 1.05;
-  letter-spacing: -0.055em;
-}
+  --text: #16251f;
+  --text-muted: #4a6359;
+  --text-dim: #6a7a71;
 
-button,
-input {
-  font: inherit;
-  color: inherit;
-}
+  --accent: #2d684c;
+  --accent-strong: #397451;
+  --accent-dim: #4a8c6b;
+  --on-accent: #f9fdf9;
 
-button {
-  cursor: pointer;
-}
-
-::selection {
-  color: var(--on-accent);
-  background: var(--accent-strong);
+  --shadow: rgba(36, 65, 51, 0.18);
 }
 
 /* ============================================================
-   SHELL
+   TOGGLE DE TEMA (canto superior esquerdo do cabecalho)
    ============================================================ */
 
-.app-shell {
-  min-height: 100vh;
-  min-height: 100dvh;
-  padding: 42px 20px;
-  padding-bottom: max(42px, env(safe-area-inset-bottom));
-  background:
-    radial-gradient(circle at 10% 0%, rgba(79, 174, 124, 0.16), transparent 34%),
-    radial-gradient(circle at 92% 8%, rgba(47, 107, 77, 0.14), transparent 30%),
-    var(--bg);
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.calculator {
-  width: min(1380px, 100%);
-  margin-inline: auto;
-  overflow: hidden;
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 16px;
   border: 1px solid var(--line);
-  border-radius: var(--radius-card);
-  background: var(--surface);
-  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
+  border-radius: 12px;
+  color: var(--text-muted);
+  background: var(--surface-3);
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: border-color 160ms ease, color 160ms ease,
+              background 160ms ease, transform 160ms ease;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent-strong);
+  background: var(--surface-2);
+}
+
+.theme-toggle:active {
+  transform: translateY(1px);
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* ============================================================
@@ -205,7 +211,8 @@ h1 {
 
 .input-box:focus-within {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(79, 174, 124, 0.2);
+  /* o verde muda com o tema via variavel */
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 .input-box span {
